@@ -1,0 +1,77 @@
+include gro
+
+set ( "dt", 0.05 );
+
+ahl := signal ( 1, 1 ); // diffusion rate and degradation rate
+
+fun f a . 0.1 < a & a < 0.6;
+
+program mainColony() := {
+
+	gfp := 0.0;
+
+	f ( get_signal ( ahl ) ) : { gfp := gfp + 1 };
+	rate ( 0.01 * gfp ) : { gfp := gfp - 1 }
+
+	p := [ t := 2.4 ];
+
+  	true : { p.t := p.t + dt }
+
+  	p.t > 10 : { 
+    		emit_signal ( ahl, 100 ), 
+    		p.t := 0 
+  	}
+
+};
+
+program report() := {
+
+	needs gfp;
+
+	selected : { message ( 1,
+        	"cell "     <> tostring(id)
+     		<> ": ahl="      <> tostring(get_signal(ahl))
+     		<> ": gfp/vol="  <> tostring(gfp/volume)
+    	)
+  };
+
+};
+
+set ( "gfp_saturation_max", 50 );
+set ( "gfp_saturation_min", 0 );
+
+program follower():={
+ 	gfp := 0.0;
+
+	p := [ mode := 0, t := 0 ];
+
+  	p.mode = 0 & get_signal ( ahl ) > 0.01 : { 
+   		emit_signal ( ahl, 100 ),
+    		p.mode := 1,
+    		p.t := 0
+  	}
+
+  	p.mode = 1 : { p.t := p.t + dt }
+
+  	p.mode = 1 & p.t > 9 : { p.mode := 0 }
+
+	f ( get_signal ( ahl ) ) : { gfp := gfp + 1 };
+	rate ( 0.01 * gfp ) : { gfp := gfp - 1 }
+};
+
+
+ecoli ( [ x:= 0, y:= 0 ], program mainColony() + report() sharing gfp );
+
+ecoli ( [ x:= 200, y:= 0 ], program follower());
+
+ecoli ( [ x:= 200, y:= 200 ], program follower());
+
+ecoli ( [ x:= 300, y:= 300 ], program follower());
+
+ecoli ( [ x:= -300, y:= -300 ], program follower());
+
+program main() := {
+
+  true : { set_signal ( ahl, 0, 0 , 10 ) }
+
+};

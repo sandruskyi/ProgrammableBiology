@@ -1,0 +1,14 @@
+include gro 
+
+set("dt", 0.1); // Tamaño del paso del tiempo (step)
+
+program p():= { // Declaración de un programa simple
+	skip();
+};
+
+program q():={
+	set("ecoli_division_size_mean",2.0);
+	set("ecoli_division_size_variance",0.02);
+};
+// Asociamos el programa a una célula ecoli inicializada en la posición (0.0) en el simulador
+ecoli([x:=0, y:=0], program p()); 

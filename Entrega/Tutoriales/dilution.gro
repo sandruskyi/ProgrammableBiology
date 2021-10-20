@@ -1,0 +1,57 @@
+include gro 
+
+set("dt", 0.1); // Tamaño del paso del tiempo (step)
+
+program dilute(m):= { // La GFP se inicializa en m 
+	gfp := m;
+};
+
+// Vamos a ver cuanto GFP hay en cada celda: 
+// Este programa envía un mensaje a la ventana de GRO cada vez que se selecciona la celda con el raton
+// Las celdas seleccionadas se resaltan en rojo: Predeterminadamente
+// Si se selecciona una celda selected se hace True
+program report() := {
+	needs gfp;
+	selected: {message (1,tostring(id)<> ": "<> tostring(gfp/volume))}
+};
+
+program p(m) := dilute(m) + report() sharing gfp;
+
+program make_gfp(k1,k2,m) := {
+	gfp := m; // Inicializamos gfp 
+
+	rate( k1): {gfp:= gfp+1} // Producimos gfp
+
+	rate (k2*gfp) : { gfp := gfp - 1 }
+};
+
+// Calculamos la tasa necesaria de producción para 100 copias de gfp por célula
+alpha := -log(0.5) / 20.0; // Tasa de dilución
+k1 := 100*alpha;
+
+program output(delta) := {
+
+  needs gfp;
+  p := [ t := 0, s := 0 ];
+
+  true : {
+    p.t := p.t + dt,
+    p.s := p.s + dt
+  }
+
+  p.s >= delta : {
+    print ( id, ", ", p.t, ", ", gfp / volume, "\n" ),
+    p.s := 0
+  }
+  
+};
+
+program p3() :=  (make_gfp(k1,0.01,0) + report() sharing gfp + output(50) sharing gfp);
+
+
+// Asociamos el programa a una célula ecoli inicializada en la posición (0.0) en el simulador
+// GRO a medida que una célula crece y se divide disminuye exponencialmente la cantidad de gfp hasta que no haya verde
+// Porque GRO distribuye automáticamente las cantidades numéricas en la celda entre el padre y la hija al realizar la división
+//ecoli([x:=0, y:=0], program p(1000)); 
+//ecoli([x:=0, y:=0], program make_gfp(k1,0.01,0)); 
+ecoli([x:=0, y:=0], program p3()); 

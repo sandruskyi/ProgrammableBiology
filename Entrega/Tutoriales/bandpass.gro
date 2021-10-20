@@ -1,0 +1,25 @@
+include gro 
+
+set("dt", 0.1); // Tamaño del paso del tiempo (step)
+
+ahl := signal (1, 0.01); // Diffusion rate and degradation rate
+
+fun f a . 0.1 < a & a < 0.6; // devuelve True si su argumento está entre 0.1 y 0.6, esta es la banda de concentración que queremos
+
+
+program sensor() := {
+	rfp := 0.0;
+
+	f ( get_signal (ahl)) : {rfp := rfp+1}; // Produce rfp si f es TRUE
+	rate (0.01 * rfp): {rfp:= rfp-1}
+};
+
+set ("rfp_saturation_max", 50);
+set ("rfp_saturation_min", 0);
+
+// Asociamos el programa a una célula ecoli inicializada en la posición (0.0) en el simulador
+ecoli([x:=0, y:=0], program sensor()); 
+
+program main():= { // mantiene la concentración en (0,0) en 10. Solo se llama una vez
+	true : { set_signal ( ahl, 0, 0, 10 ) }
+};
